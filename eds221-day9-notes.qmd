@@ -1,0 +1,141 @@
+---
+title: "eds221-day9-notes"
+format: html
+editor: visual
+execute:
+    warning: FALSE
+---
+
+```{r}
+library(patchwork)
+library(kableExtra)
+library(tidyverse)
+library(palmerpenguins)
+library(reprex)
+```
+
+# Warm Up
+
+Starting from penguins, create a new subset in which you:
+
+1.  Only keep columns species, island, sex, body_mass_g, and flipper_length_mm
+2.  Filter to only include Chinstrap and Gentoos
+3.  Rename the species column to penguin_species
+4.  Create a summary table that contains the mean of body mass, the mean of flipper length, and the total count of observations each by species and sex
+
+```{r}
+# my answer
+warmup <- penguins %>% 
+  select(species, island, sex, body_mass_g, flipper_length_mm) %>% 
+  filter(species %in% c("Chinstrap", "Gentoo")) %>% 
+  mutate(penguin_species = species) %>% 
+  group_by(penguin_species, sex) %>% 
+  summarize(mean_body_mass = mean(body_mass_g, na.rm = TRUE),
+            mean_flipper_length = mean(flipper_length_mm, na.rm = TRUE),
+            total_count = n())
+
+# class answer
+warmup_answer <- penguins %>% 
+  select(penguin_species = species, island, sex, body_mass_g, flipper_length_mm) %>% 
+  filter(penguin_species %in% c("Chinstrap", "Gentoo")) %>% 
+  group_by(penguin_species, sex) %>% 
+  summarize(mean_body_mass_g = mean(body_mass_g, na.rm = TRUE),
+            mean_flipper_length_mm = mean(flipper_length_mm, na.rm = TRUE),
+            total_count = n())
+```
+
+# 
+
+# A few variations of dplyr::across()
+
+create a summary table of mean values for all numeric variables in the penguins dataset
+
+```{r}
+ex_1 <- penguins %>% 
+  group_by(species) %>% 
+  summarize(across(where(is.numeric), max, na.rm = TRUE))
+```
+
+Calculate the mean value of all columns that start with "bill"
+
+```{r}
+ex_2 <- penguins %>% 
+  group_by(species, island) %>% 
+  summarize(across(starts_with("bill"), mean, na.rm = TRUE))
+```
+
+Write code that will return the minimum value of any columns that end with the character "mm", grouped by island and year
+
+```{r}
+ex_3 <- penguins %>% 
+  group_by(island, year) %>% 
+  summarize(across(ends_with("mm"), min, na.rm = TRUE))
+```
+
+Find and return both the mean and standard deviation of all columns starting with bill, grouped by penguin species, and returning a new name that combines the original column with the function
+
+```{r}
+ex_4 <- penguins %>% 
+  group_by(species) %>% 
+  summarize(across(starts_with("bill"), 
+                   list(mean = mean, max = max, sd = sd), 
+                   na.rm = TRUE, 
+                   .names = "{.col}_hello_{.fn}"))
+```
+
+```{r}
+ex_5 <- penguins %>% 
+  group_by(species) %>% 
+  summarize(across(where(is.numeric), 
+                   list(mean = mean, max = max, sd = sd), 
+                   na.rm = TRUE, 
+                   .names = "{.col}_hello_{.fn}"))
+```
+
+```{r}
+# making a nice chart / table that can be seen when rendered
+penguins_table <- penguins %>% 
+  group_by(species, sex) %>% 
+  summarize(mean_mass = mean(body_mass_g, na.rm = TRUE),
+            sd_mass = sd(body_mass_g, na.rm = TRUE)) %>% 
+  kable(col.names = c("Species", "Sex", "Mean body mass (g)", "SD Body mass (g)")) %>% 
+  kable_styling(full_width = FALSE) 
+penguins_table
+```
+
+```{r}
+chart1 <- penguins %>% 
+  ggplot(aes(x = body_mass_g, 
+             y = flipper_length_mm)) +
+  geom_point()
+chart1
+```
+
+```{r}
+chart2 <- penguins %>% 
+  ggplot(aes(x = bill_length_mm)) +
+  geom_histogram()
+chart2
+```
+
+```{r}
+# compound figures via patchwork package
+(chart1 + chart2 + chart1) / (chart2 + chart1) + chart1
+```
+
+```{r}
+#| fig-cap: Penguin body mass observations by species
+#| fig-alt: Jitterplot showing body mass measurments (y-axis, in grams) for three penguin species (Adelie, Chinstrap, and Gentoo on x-axis) observed near Palmer Archipelago, Antarctica. Adelie and Chinstraps have similar body mass distributions, with Gentoos noticeably larger than both..
+penguins %>% 
+  ggplot() +
+  geom_jitter(width = 0.2, alpha = 0.5, color = "navy")
+```
+
+```{r}
+# using reprex: copy code chunk then run reprex() in the console. creates reproducible example and the output is pasted to the clipboard. run the follow and paste the code somwehre
+# library(tidyverse)
+# library(reprex)
+
+ggplot(data = mtcars, aes(x = mpg, y = hp)) +
+geom_point()
+```
